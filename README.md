@@ -290,8 +290,6 @@ The physical Modulino Pixels and the WebUI traffic signals should show the same 
 
 ## Team Members
 
-Add your team members here:
-
 - Jungwoo(Max)
 - Mehul Goel
 - Aryan Makwana
