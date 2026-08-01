@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Two-Road Car Detection</title>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 24px;
+            font-family: Arial, sans-serif;
+            color: white;
+            background: #101820;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            max-width: 1250px;
+            margin: auto;
+        }
+
+        .panel {
+            padding: 20px;
+            border-radius: 16px;
+            background: #1c2a35;
+        }
+
+        .camera-wrapper {
+            position: relative;
+        }
+
+        iframe {
+            display: block;
+            width: 100%;
+            height: 600px;
+            border: 0;
+            border-radius: 12px;
+            background: black;
+        }
+
+        .divider {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 4px;
+            background: #ffcc00;
+            pointer-events: none;
+        }
+
+        .road-name {
+            position: absolute;
+            top: 12px;
+            padding: 8px 14px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.75);
+            font-weight: bold;
+        }
+
+        .left-name {
+            left: 12px;
+        }
+
+        .right-name {
+            right: 12px;
+        }
+
+        .road-card {
+            padding: 20px;
+            margin-bottom: 18px;
+            text-align: center;
+            border: 2px solid transparent;
+            border-radius: 14px;
+            background: #263a48;
+            transition:
+                border-color 0.3s,
+                box-shadow 0.3s;
+        }
+
+        .road-card.state-red {
+            border-color: #ff5252;
+        }
+
+        .road-card.state-yellow {
+            border-color: #ffcc00;
+        }
+
+        .road-card.state-green {
+            border-color: #00e676;
+        }
+
+        .road-label {
+            font-size: 22px;
+        }
+
+        .road-count {
+            font-size: 70px;
+            font-weight: bold;
+            color: #00e5a8;
+        }
+
+        .total {
+            color: #ffcc00;
+        }
+
+        /*
+         * Small traffic-signal container
+         */
+        .traffic-light {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            width: fit-content;
+            margin: 8px auto 12px;
+            padding: 10px 14px;
+            border: 3px solid #4b5963;
+            border-radius: 14px;
+            background: #080c0f;
+        }
+
+        .signal-lamp {
+            width: 34px;
+            height: 34px;
+            border: 3px solid #30383e;
+            border-radius: 50%;
+            opacity: 0.18;
+            transition:
+                opacity 0.25s,
+                box-shadow 0.25s;
+        }
+
+        .signal-lamp.red {
+            background: #ff3030;
+        }
+
+        .signal-lamp.yellow {
+            background: #ffd000;
+        }
+
+        .signal-lamp.green {
+            background: #00e65c;
+        }
+
+        .signal-lamp.active {
+            opacity: 1;
+        }
+
+        .signal-lamp.red.active {
+            box-shadow: 0 0 20px #ff3030;
+        }
+
+        .signal-lamp.yellow.active {
+            box-shadow: 0 0 20px #ffd000;
+        }
+
+        .signal-lamp.green.active {
+            box-shadow: 0 0 20px #00e65c;
+        }
+
+        .signal-description {
+            margin-top: 6px;
+            font-size: 17px;
+            font-weight: bold;
+        }
+
+        .signal-time {
+            margin-top: 6px;
+            color: #bdc8d0;
+            font-size: 15px;
+        }
+
+        #status {
+            text-align: center;
+            color: #ffcc00;
+        }
+
+        @media (max-width: 800px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            iframe {
+                height: 420px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Live Two-Road Traffic Detection</h1>
+
+    <div class="dashboard">
+
+        <!-- Camera section -->
+        <div class="panel">
+            <div class="camera-wrapper">
+
+                <iframe
+                    id="cameraFeed"
+                    title="Live detection camera">
+                </iframe>
+
+                <div class="divider"></div>
+
+                <div class="road-name left-name">
+                    LEFT ROAD
+                </div>
+
+                <div class="road-name right-name">
+                    RIGHT ROAD
+                </div>
+            </div>
+        </div>
+
+        <!-- Counts and signals -->
+        <div class="panel">
+
+            <!-- Left road -->
+            <div
+                id="leftCard"
+                class="road-card state-red">
+
+                <div class="road-label">
+                    Left road
+                </div>
+
+                <div
+                    id="leftCount"
+                    class="road-count">
+                    0
+                </div>
+
+                <div class="traffic-light">
+                    <div
+                        id="leftRed"
+                        class="signal-lamp red active">
+                    </div>
+
+                    <div
+                        id="leftYellow"
+                        class="signal-lamp yellow">
+                    </div>
+
+                    <div
+                        id="leftGreen"
+                        class="signal-lamp green">
+                    </div>
+                </div>
+
+                <div
+                    id="leftSignalDescription"
+                    class="signal-description">
+                    RED • 0 cars
+                </div>
+
+                <div
+                    id="leftSignalTime"
+                    class="signal-time">
+                    Time in red: 00:00
+                </div>
+            </div>
+
+            <!-- Right road -->
+            <div
+                id="rightCard"
+                class="road-card state-red">
+
+                <div class="road-label">
+                    Right road
+                </div>
+
+                <div
+                    id="rightCount"
+                    class="road-count">
+                    0
+                </div>
+
+                <div class="traffic-light">
+                    <div
+                        id="rightRed"
+                        class="signal-lamp red active">
+                    </div>
+
+                    <div
+                        id="rightYellow"
+                        class="signal-lamp yellow">
+                    </div>
+
+                    <div
+                        id="rightGreen"
+                        class="signal-lamp green">
+                    </div>
+                </div>
+
+                <div
+                    id="rightSignalDescription"
+                    class="signal-description">
+                    RED • 0 cars
+                </div>
+
+                <div
+                    id="rightSignalTime"
+                    class="signal-time">
+                    Time in red: 00:00
+                </div>
+            </div>
+
+            <!-- Total cars -->
+            <div class="road-card">
+                <div class="road-label">
+                    Total cars
+                </div>
+
+                <div
+                    id="totalCount"
+                    class="road-count total">
+                    0
+                </div>
+            </div>
+
+            <div id="status">
+                Connecting...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const cameraFeed =
+            document.getElementById("cameraFeed");
+
+        const leftCount =
+            document.getElementById("leftCount");
+
+        const rightCount =
+            document.getElementById("rightCount");
+
+        const totalCount =
+            document.getElementById("totalCount");
+
+        const status =
+            document.getElementById("status");
+
+        cameraFeed.src =
+            `http://${window.location.hostname}:4912/embed`;
+
+        const roadStates = {
+            left: {
+                light: null,
+                count: 0,
+                startedAt: Date.now()
+            },
+
+            right: {
+                light: null,
+                count: 0,
+                startedAt: Date.now()
+            }
+        };
+
+        const validLights = [
+            "red",
+            "yellow",
+            "green"
+        ];
+
+
+        function formatTime(milliseconds) {
+            const totalSeconds = Math.max(
+                0,
+                Math.floor(milliseconds / 1000)
+            );
+
+            const minutes = Math.floor(
+                totalSeconds / 60
+            );
+
+            const seconds = totalSeconds % 60;
+
+            return (
+                String(minutes).padStart(2, "0")
+                + ":"
+                + String(seconds).padStart(2, "0")
+            );
+        }
+
+
+        function updateRoad(
+            side,
+            light,
+            count,
+            elapsedSeconds
+        ) {
+            if (!validLights.includes(light)) {
+                light = "red";
+            }
+
+            const road = roadStates[side];
+
+            /*
+             * Reset the timer only when the light
+             * changes color.
+             */
+            if (road.light !== light) {
+                road.light = light;
+                road.startedAt = Date.now();
+            }
+
+            /*
+             * Synchronize with the timer from Python.
+             */
+            if (Number.isFinite(elapsedSeconds)) {
+                road.startedAt =
+                    Date.now() - (elapsedSeconds * 1000);
+            }
+
+            road.count = count;
+
+            const capitalSide =
+                side.charAt(0).toUpperCase()
+                + side.slice(1);
+
+            const card =
+                document.getElementById(
+                    `${side}Card`
+                );
+
+            card.classList.remove(
+                "state-red",
+                "state-yellow",
+                "state-green"
+            );
+
+            card.classList.add(
+                `state-${light}`
+            );
+
+            for (const color of validLights) {
+                const capitalColor =
+                    color.charAt(0).toUpperCase()
+                    + color.slice(1);
+
+                const lamp =
+                    document.getElementById(
+                        `${side}${capitalColor}`
+                    );
+
+                lamp.classList.toggle(
+                    "active",
+                    color === light
+                );
+            }
+
+            document.getElementById(
+                `${side}SignalDescription`
+            ).textContent =
+                `${light.toUpperCase()} • `
+                + `${count} `
+                + `${count === 1 ? "car" : "cars"}`;
+
+            refreshTimer(side);
+        }
+
+
+        function refreshTimer(side) {
+            const road = roadStates[side];
+
+            if (road.light === null) {
+                return;
+            }
+
+            const elapsed =
+                Date.now() - road.startedAt;
+
+            document.getElementById(
+                `${side}SignalTime`
+            ).textContent =
+                `Time in ${road.light}: `
+                + formatTime(elapsed);
+        }
+
+
+        /*
+         * Update the displayed timers locally.
+         * This does not add load to the UNO Q.
+         */
+        setInterval(() => {
+            refreshTimer("left");
+            refreshTimer("right");
+        }, 250);
+
+
+        const socket = io();
+
+
+        socket.on("connect", () => {
+            status.textContent = "Connected";
+            status.style.color = "#00e5a8";
+        });
+
+
+        socket.on("disconnect", () => {
+            status.textContent = "Disconnected";
+            status.style.color = "#ff5252";
+        });
+
+
+        socket.on("car_count", (data) => {
+            const leftCars =
+                Number(data.left) || 0;
+
+            const rightCars =
+                Number(data.right) || 0;
+
+            leftCount.textContent = leftCars;
+            rightCount.textContent = rightCars;
+            totalCount.textContent =
+                Number(data.total) || 0;
+
+            updateRoad(
+                "left",
+                data.left_light || "red",
+                leftCars,
+                Number(data.left_light_seconds)
+            );
+
+            updateRoad(
+                "right",
+                data.right_light || "red",
+                rightCars,
+                Number(data.right_light_seconds)
+            );
+        });
+    </script>
+</body>
+</html>
