@@ -1,0 +1,8 @@
+name: Car-detection
+description: ""
+ports: []
+bricks:
+- arduino:video_object_detection:
+    model: ei-model-1072864-1
+- arduino:web_ui: {}
+icon: 😀
