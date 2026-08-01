@@ -290,7 +290,7 @@ The physical Modulino Pixels and the WebUI traffic signals should show the same 
 
 ## Team Members
 
-- Jungwoo(Max)
+- Jungwoo(Max) Moon
 - Mehul Goel
 - Aryan Makwana
 
